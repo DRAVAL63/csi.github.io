@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Western Railway Staff Portal — S&T BRC Division</title>
+
+<!-- ✅ Paste Firebase code here -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA3Uwg3TLPPOIezMsl6fDB4QsO0yc6SmPs",
+    authDomain: "wr-snt-brc-portal.firebaseapp.com",
+    projectId: "wr-snt-brc-portal",
+    storageBucket: "wr-snt-brc-portal.firebasestorage.app",
+    messagingSenderId: "624082670998",
+    appId: "1:624082670998:web:abccc9b4e101c0d9f9b9b7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const staffCol = collection(db, "staff");
+</script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --brand:#0b57a4; --accent:#0f6fbf; --bg:#f5f7fb; --card:#ffffff; --muted:#6b7280;
+      --ring:#e6eefc; --shadow:0 12px 30px rgba(11,87,164,0.08); --radius:12px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:var(--bg);color:#111}
+    .container{max-width:1200px;margin:28px auto;padding:20px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,#fff,#eef6ff);display:flex;align-items:center;justify-content:center;color:var(--brand);font-weight:800;box-shadow:var(--shadow)}
+    h1,h2{margin:0}
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+    .subtitle{color:var(--muted);font-size:13px;margin-top:6px}
+    .pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#eef6ff;color:#164c96;font-weight:600;font-size:12px}
+    .input{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--ring);font-size:14px}
+
+    /* Login */
+    #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .loginBox{width:420px;max-width:95%;background:var(--card);border-radius:14px;padding:22px;border:1px solid var(--ring);box-shadow:0 18px 50px rgba(0,0,0,.06);text-align:center}
+
+    /* Sections & table */
+    .section-header{display:flex;align-items:center;justify-content:space-between;padding:14px;border-radius:10px;background:linear-gradient(90deg,#f7fbf9,#fff);border-left:6px solid #2e7d32;margin-bottom:12px}
+    .grid-buttons{display:flex;flex-wrap:wrap;gap:10px}
+    .sec-btn{min-width:110px;padding:10px 14px;border-radius:10px;border:1px solid var(--ring);background:#fff;color:var(--brand);font-weight:700;cursor:pointer}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:12px}
+    .search{display:flex;gap:8px;align-items:center}
+    .search input{padding:10px 12px;border-radius:10px;border:1px solid var(--ring);min-width:260px}
+
+    /* Table layout: fixed so columns keep inside card */
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:13px;table-layout:fixed}
+    thead th{background:#f1f7fb;color:var(--brand);padding:10px;border-bottom:1px solid #eef6fb;text-align:center;position:sticky;top:0;z-index:2}
+    tbody td{padding:10px;border-bottom:1px solid #f3f6f9;text-align:center;vertical-align:middle}
+    tbody tr:nth-child(even){background:#fbfdff}
+
+    /* Column widths via colgroup classes */
+    col.col-sr { width:48px; }
+    col.col-name { width:170px; }
+    col.col-stream { width:100px; }
+    col.col-design { width:120px; }
+    col.col-posting { width:140px; }
+    col.col-controlling { width:140px; }
+    col.col-under-adste { width:120px; } /* NEW: Under ADSTE column width */
+    col.col-under-dste { width:120px; }
+    col.col-under-srdste { width:120px; }
+    col.col-pf { width:110px; }
+    col.col-dob { width:110px; }
+    col.col-dor { width:110px; }
+    col.col-doj { width:110px; }
+    col.col-cug { width:120px; }
+    col.col-email { width: 200px;}
+    col.col-whatsapp { width:140px; }
+    col.col-actions { width:140px; }
+
+    /* Ensure long text wraps and doesn't overflow card */
+    td, th { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    td.wrap, th.wrap { white-space: normal; word-break:break-word; }
+
+    /* Make email and whatsapp cells allow wrapping inside their column */
+    td.email, th.email { white-space:normal; word-break:break-word; text-align:left; padding-left:12px; }
+    td.whatsapp, th.whatsapp { white-space:normal; word-break:break-word; text-align:center; }
+
+    /* Action buttons larger and contained */
+    .action .btn { padding:8px 10px; font-size:13px; border-radius:8px; }
+    .action .btn.ghost { border:1px solid #dbe7f6; background:#fff; color:var(--brand); }
+
+    /* Modal */
+    .modal-backdrop{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:999}
+    .modal{width:920px;max-width:96%;max-height:90vh;background:var(--card);border-radius:12px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,0.25);display:flex;flex-direction:column;overflow:hidden}
+    .modal h3{margin:0 0 8px 0;color:var(--brand)}
+    .modal .modal-body{overflow:auto;padding-right:8px;margin-top:8px}
+    .modal form{display:flex;flex-direction:column;gap:12px}
+    /* Use 3 columns for modal form on wide screens so fields fit nicely */
+    .modal .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{font-size:12px;color:var(--muted)}
+    .field input, .field select{padding:10px 12px;border-radius:8px;border:1px solid var(--ring);font-size:14px;width:100%;box-sizing:border-box}
+    /* Make email and whatsapp inputs span two columns for more space */
+    .span-2 { grid-column: span 2; }
+    .span-3 { grid-column: span 3; }
+    .modal .actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px}
+    .btn{border:0;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+    .btn.primary{background:var(--accent);color:#fff}
+    .btn.ghost{background:#fff;border:1px solid var(--ring);color:var(--brand)}
+
+    @media (max-width:1100px){
+      /* reduce modal columns on medium screens */
+      .modal .grid{grid-template-columns:repeat(2,1fr)}
+      .span-2{grid-column:span 2}
+      .span-3{grid-column:span 2}
+    }
+    @media (max-width:640px){
+      .modal{width:94%}
+      .modal .grid{grid-template-columns:1fr}
+      .span-2{grid-column:span 1}
+      .span-3{grid-column:span 1}
+    }
+  </style>
+</head>
+<body>
+  <!-- ====== Edit these values only ====== -->
+  <script>
+    // Admin password (change if needed)
+    const ADMIN_PASSWORD = "S&TBRC";
+
+    // Section labels (exact labels requested)
+    const SECTIONS = ["BH-I","BH-II","BRC","GDA-I","GDA-II","ANND","ND","PRTN"];
+
+    // Section passwords (change values as needed)
+    const SECTION_PASSWORDS = {
+      "BH-I":"BHI@123",
+      "BH-II":"BHII@456",
+      "BRC":"BRC@789",
+      "GDA-I":"GDAI#123",
+      "GDA-II":"GDAII#456",
+      "ANND":"ANND#789",
+      "ND":"ND@123",
+      "PRTN":"PRTN@1234"
+    };
+  </script>
+
+  <!-- LOGIN -->
+  <section id="loginScreen">
+    <div class="loginBox card" role="dialog" aria-modal="true">
+      <div style="display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:8px">
+        <div class="logo" aria-hidden="true">S&T</div>
+      </div>
+      <h2>Admin Login</h2>
+      <p class="subtitle">Enter admin password to continue</p>
+      <div style="margin-top:12px">
+        <input id="adminPass" class="input" type="password" placeholder="Admin password" autocomplete="current-password" />
+      </div>
+      <div style="margin-top:14px">
+        <button id="loginBtn" class="btn primary">Login</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PORTAL -->
+  <div id="portal" style="display:none">
+    <div class="container">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">S&T</div>
+          <div>
+            <h1 style="font-size:18px;color:var(--brand)">Western Railway — S&T BRC</h1>
+            <div class="subtitle">Staff Directory</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <span class="pill" id="loginState">Admin</span>
+          <button id="logoutBtn" class="btn ghost">Logout</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">
+          <div>
+            <h2 style="font-size:16px;color:#2e7d32">All sections</h2>
+            <div class="subtitle">Select a section to unlock</div>
+          </div>
+          <div></div>
+        </div>
+
+        <div class="grid-buttons" id="sectionButtons" aria-label="Section buttons"></div>
+
+        <div id="sectionArea" style="display:none">
+          <div class="toolbar">
+            <div class="search">
+              <input id="searchInput" type="text" placeholder="Search: name, designation, email" />
+              <button id="clearSearchBtn" class="btn ghost">Clear</button>
+            </div>
+            <div>
+              <button id="addNewBtn" class="btn primary">+ Add employee</button>
+            </div>
+          </div>
+
+          <div style="margin-top:12px">
+            <span id="sectionTitle" class="pill">No section selected</span>
+          </div>
+
+          <div id="tableCard" class="card" style="margin-top:12px">
+            <div class="table-wrap">
+              <table id="staffTable" aria-label="Staff directory">
+                <colgroup>
+                  <col class="col-sr">
+                  <col class="col-name">
+                  <col class="col-stream">
+                  <col class="col-design">
+                  <col class="col-posting">
+                  <col class="col-controlling">
+                  <col class="col-under-adste">
+                  <col class="col-under-dste">
+                  <col class="col-under-srdste">
+                  <col class="col-pf">
+                  <col class="col-dob">
+                  <col class="col-dor">
+                  <col class="col-doj">
+                  <col class="col-cug">
+                  <col class="col-email">
+                  <col class="col-whatsapp">
+                  <col class="col-actions">
+                </colgroup>
+                <thead>
+                  <tr>
+                    <th class="wrap">Sr. No</th>
+                    <th class="wrap">Name</th>
+                    <th class="wrap">Stream</th>
+                    <th class="wrap">Designation</th>
+                    <th class="wrap">Posting</th>
+                    <th class="wrap">Controlling Section</th>
+                    <th class="wrap">Under ADSTE</th>
+                    <th class="wrap">Under DSTE</th>
+                    <th class="wrap">Under Sr.DSTE</th>
+                    <th class="wrap">PF No</th>
+                    <th class="wrap">DOB</th>
+                    <th class="wrap">DOR</th>
+                    <th class="wrap">DOJ</th>
+                    <th class="wrap">CUG No</th>
+                    <th class="email">E-mail ID</th>
+                    <th class="whatsapp">WhatsApp No</th>
+                    <th class="wrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION PASSWORD MODAL -->
+  <div id="sectionPwdModal" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3 id="sectionPwdTitle">Section password</h3>
+      <div class="modal-body">
+        <div style="margin-top:8px">
+          <input id="sectionPwdInput" class="input" type="password" placeholder="Enter section password" />
+        </div>
+        <div class="actions" style="margin-top:12px;display:flex;justify-content:flex-end;gap:10px">
+          <button id="sectionPwdCancel" class="btn ghost">Cancel</button>
+          <button id="sectionPwdSubmit" class="btn primary">Submit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT MODAL (PF No kept; PRK removed) -->
+  <div id="editModal" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+      <h3 id="editTitle">Add / Edit employee</h3>
+      <div class="modal-body">
+        <form id="empForm">
+          <div class="grid">
+            <div class="field"><label for="f_name">Name</label><input id="f_name" placeholder="Full name" required /></div>
+            <div class="field"><label for="f_stream">Stream</label><input id="f_stream" placeholder="Stream (e.g., Signal)" /></div>
+            <div class="field"><label for="f_designation">Designation</label><input id="f_designation" placeholder="Designation" /></div>
+
+            <div class="field"><label for="f_posting">Posting</label><input id="f_posting" placeholder="Posting (auto-filled with section)" /></div>
+            <div class="field"><label for="f_controlling">Controlling Section</label><input id="f_controlling" placeholder="Controlling Section" /></div>
+            <div class="field"><label for="f_under_adste">Under ADSTE</label><input id="f_under_adste" placeholder="Under ADSTE" /></div>
+
+            <div class="field"><label for="f_under_dste">Under DSTE</label><input id="f_under_dste" placeholder="Under DSTE" /></div>
+            <div class="field"><label for="f_under_srdste">Under Sr.DSTE</label><input id="f_under_srdste" placeholder="Under Sr.DSTE" /></div>
+            <div class="field"><label for="f_pf">PF No</label><input id="f_pf" placeholder="PF No" /></div>
+
+            <div class="field"><label for="f_dob">DOB</label><input id="f_dob" type="date" /></div>
+            <div class="field"><label for="f_dor">DOR</label><input id="f_dor" type="date" /></div>
+            <div class="field"><label for="f_doj">DOJ</label><input id="f_doj" type="date" /></div>
+
+            <div class="field"><label for="f_cug">CUG No</label><input id="f_cug" placeholder="CUG number (optional)" /></div>
+            <div class="field span-2"><label for="f_email">E-mail ID</label><input id="f_email" type="email" placeholder="name@example.com" /></div>
+            <div class="field"><label for="f_whatsapp">WhatsApp No</label><input id="f_whatsapp" placeholder="10-digit number" /></div>
+
+            <!-- keep grid balanced -->
+            <div class="field" style="visibility:hidden"><label>&nbsp;</label><input disabled /></div>
+          </div>
+
+          <input type="hidden" id="editIndex" value="-1" />
+          <div class="actions">
+            <button type="button" id="editCancel" class="btn ghost">Cancel</button>
+            <button type="submit" id="editSave" class="btn primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // STATE & CONFIG
+     let staff = [], currentSection = "", searchQuery = "", pendingSection = null;
+
+    // ELEMENTS
+    const loginScreen = document.getElementById("loginScreen");
+    const portal = document.getElementById("portal");
+    const sectionButtonsWrap = document.getElementById("sectionButtons");
+    const sectionArea = document.getElementById("sectionArea");
+    const sectionTitle = document.getElementById("sectionTitle");
+    const staffTbody = document.querySelector("#staffTable tbody");
+    const sectionPwdModal = document.getElementById("sectionPwdModal");
+    const sectionPwdInput = document.getElementById("sectionPwdInput");
+    const editModal = document.getElementById("editModal");
+
+    // Attach listeners
+    document.getElementById("loginBtn").addEventListener("click", confirmLogin);
+    document.getElementById("logoutBtn").addEventListener("click", logout);
+    document.getElementById("sectionPwdCancel").addEventListener("click", closeSectionPwdModal);
+    document.getElementById("sectionPwdSubmit").addEventListener("click", confirmSectionPwd);
+    document.getElementById("clearSearchBtn").addEventListener("click", clearSearch);
+    document.getElementById("addNewBtn").addEventListener("click", openAddModal);
+    document.getElementById("editCancel").addEventListener("click", closeEditModal);
+    document.getElementById("empForm").addEventListener("submit", saveEmployee);
+
+    // INIT after login
+    function initPortal(){
+      load();
+      renderSectionButtons();
+      const si = document.getElementById("searchInput");
+      if(si) si.addEventListener("input", (e)=>{ searchQuery = e.target.value; renderTable(); });
+      sectionArea.style.display = "none";
+    }
+
+    // LOGIN
+    function confirmLogin(){
+      const pass = document.getElementById("adminPass")?.value?.trim();
+      if(!pass){ alert("Password required"); return; }
+      if(pass !== ADMIN_PASSWORD){ alert("Wrong password"); return; }
+      loginScreen.style.display = "none";
+      portal.style.display = "block";
+      initPortal();
+    }
+    function logout(){
+      if(!confirm("Logout?")) return;
+      portal.style.display = "none";
+      loginScreen.style.display = "flex";
+      document.getElementById("adminPass").value = "";
+      currentSection = ""; searchQuery = "";
+    }
+
+    // RENDER SECTION BUTTONS
+    function renderSectionButtons(){
+      sectionButtonsWrap.innerHTML = "";
+      SECTIONS.forEach(sec=>{
+        const b = document.createElement("button");
+        b.className = "sec-btn";
+        b.textContent = sec;
+        b.onclick = ()=>promptSectionUnlock(sec);
+        sectionButtonsWrap.appendChild(b);
+      });
+    }
+
+    // SECTION UNLOCK FLOW
+    function promptSectionUnlock(sectionKey){
+      pendingSection = sectionKey;
+      document.getElementById("sectionPwdTitle").textContent = `Password for ${sectionKey}`;
+      sectionPwdInput.value = "";
+      sectionPwdModal.style.display = "flex";
+      sectionPwdInput.focus();
+    }
+    function closeSectionPwdModal(){ sectionPwdModal.style.display = "none"; pendingSection = null; sectionPwdInput.value = ""; }
+
+    function confirmSectionPwd(){
+      const val = sectionPwdInput.value.trim();
+      if(!val){ alert("Password required"); return; }
+      const expected = SECTION_PASSWORDS[pendingSection];
+      if(typeof expected === "undefined"){ alert("No password configured for this section"); return; }
+      if(val === expected){
+        currentSection = pendingSection;
+        sectionTitle.textContent = "Section: " + currentSection;
+        sectionArea.style.display = "block";
+        renderTable();
+        closeSectionPwdModal();
+      } else {
+        alert("Wrong password");
+      }
+    }
+
+    // TABLE RENDER
+    function renderTable(){
+      const rows = staff
+        .filter(r => !currentSection || (r.section||"").toUpperCase() === currentSection.toUpperCase())
+        .filter(r => !searchQuery || matchRow(r, searchQuery));
+      staffTbody.innerHTML = "";
+      if(rows.length === 0){
+        staffTbody.innerHTML = `<tr><td colspan="17" style="padding:18px;color:var(--muted)">No records for ${currentSection || "selected section"}.</td></tr>`;
+        return;
+      }
+      rows.forEach((r,i)=>{
+        const globalIndex = staff.indexOf(r);
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td title="${esc(r.name)}">${esc(r.name)}</td>
+          <td title="${esc(r.stream)}">${esc(r.stream)}</td>
+          <td title="${esc(r.designation)}">${esc(r.designation)}</td>
+          <td title="${esc(r.posting)}">${esc(r.posting)}</td>
+          <td title="${esc(r.controlling)}">${esc(r.controlling)}</td>
+          <td title="${esc(r.under_adste)}">${esc(r.under_adste)}</td>
+          <td title="${esc(r.under_dste)}">${esc(r.under_dste)}</td>
+          <td title="${esc(r.under_srdste)}">${esc(r.under_srdste)}</td>
+          <td title="${esc(r.pf)}">${esc(r.pf)}</td>
+          <td title="${formatDate(r.dob)}">${formatDate(r.dob)}</td>
+          <td title="${formatDate(r.dor)}">${formatDate(r.dor)}</td>
+          <td title="${formatDate(r.doj)}">${formatDate(r.doj)}</td>
+          <td title="${esc(r.cug)}">${esc(r.cug)}</td>
+          <td class="email" title="${esc(r.email)}">${esc(r.email)}</td>
+          <td class="whatsapp" title="${esc(r.whatsapp)}">${esc(r.whatsapp)}</td>
+          <td class="action">
+            <button class="btn ghost" onclick="openEditModal(${globalIndex})">Edit</button>
+            <button class="btn ghost" onclick="deleteRow(${globalIndex})">Delete</button>
+          </td>
+        `;
+        staffTbody.appendChild(tr);
+      });
+    }
+
+    function matchRow(r,q){
+      const s = q.trim().toLowerCase();
+      return [
+        r.name,r.stream,r.designation,r.posting,r.controlling,
+        r.under_adste, r.under_dste, r.under_srdste,
+        r.pf,r.email,r.whatsapp
+      ].some(x => (x||"").toString().toLowerCase().includes(s));
+    }
+
+    // Add / Edit modal
+    function openAddModal(){ openEditModal(-1); }
+    function openEditModal(idx){
+      document.getElementById("editIndex").value = idx;
+      document.getElementById("editTitle").textContent = idx >= 0 ? "Edit employee" : "Add new employee";
+      if(idx >= 0){
+        const r = staff[idx];
+        setVal("f_name", r.name); setVal("f_stream", r.stream); setVal("f_designation", r.designation);
+        setVal("f_posting", r.posting); setVal("f_controlling", r.controlling);
+        setVal("f_under_adste", r.under_adste);
+        setVal("f_under_dste", r.under_dste); setVal("f_under_srdste", r.under_srdste);
+        setVal("f_pf", r.pf);
+        setVal("f_dob", r.dob); setVal("f_dor", r.dor); setVal("f_doj", r.doj);
+        setVal("f_cug", r.cug); setVal("f_email", r.email); setVal("f_whatsapp", r.whatsapp);
+      } else {
+        document.getElementById("empForm").reset();
+        setVal("f_posting", currentSection || "");
+      }
+      editModal.style.display = "flex";
+      const mb = editModal.querySelector(".modal-body");
+      if(mb) mb.scrollTop = 0;
+    }
+    function closeEditModal(){ editModal.style.display = "none"; }
+
+    async function saveEmployee(e){
+
+      e && e.preventDefault && e.preventDefault();
+      try {
+        const idx = parseInt(getVal("editIndex") || "-1", 10);
+        const obj = {
+          name:getVal("f_name"),
+          stream:getVal("f_stream"),
+          designation:getVal("f_designation"),
+          posting:getVal("f_posting"),
+          controlling:getVal("f_controlling"),
+          under_adste:getVal("f_under_adste"),
+          under_dste:getVal("f_under_dste"),
+          under_srdste:getVal("f_under_srdste"),
+          pf:getVal("f_pf"),
+          dob:getVal("f_dob"),
+          dor:getVal("f_dor"),
+          doj:getVal("f_doj"),
+          cug:getVal("f_cug"),
+          email:getVal("f_email"),
+          whatsapp:getVal("f_whatsapp"),
+          section: currentSection || getVal("f_posting") || ""
+        };
+
+        if(!obj.name){ alert("Name required"); return; }
+
+        obj.dob = normalizeDate(obj.dob);
+        obj.dor = normalizeDate(obj.dor);
+        obj.doj = normalizeDate(obj.doj);
+ 
+       if(idx >= 0 && staff[idx] && staff[idx].id){
+  const ref = doc(db, "staff", staff[idx].id);
+  await updateDoc(ref, obj);
+  staff[idx] = { id: staff[idx].id, ...obj };
+} else {
+  const ref = await addDoc(staffCol, obj);
+  staff.push({ id: ref.id, ...obj });
+}
+        closeEditModal();
+        renderTable();
+      } catch (err) {
+        console.error("saveEmployee error:", err);
+        alert("An unexpected error occurred while saving. Check console for details.");
+      }
+    }
+
+  async function deleteRow(idx){
+  if(idx < 0) return;
+  if(!confirm("Delete this record permanently?")) return;
+
+  try{
+    const item = staff[idx];
+    if(!item || !item.id){ alert("Invalid record"); return; }
+    await deleteDoc(doc(db, "staff", item.id));
+    staff.splice(idx,1);
+    renderTable();
+  } catch(e){
+    console.error("Delete failed:", e);
+    alert("Delete failed. Check console for details.");
+  }
+}
+
+    // STORAGE helpers
+
+   async function load(){
+  try{
+    const snapshot = await getDocs(staffCol);
+    staff = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch(e){
+    console.error("Firestore load failed:", e);
+    staff = [];
+    alert("Unable to load data from Firestore.");
+  }
+}
+    
+    // UTILITIES
+    function setVal(id,v){ const el = document.getElementById(id); if(el) el.value = v||""; }
+    function getVal(id){ const el = document.getElementById(id); return el ? el.value.trim() : ""; }
+    function esc(x){ return (x||"").toString().replace(/[&<>"']/g, s=>({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[s])); }
+
+    // Date helpers
+    function normalizeDate(v){
+      if(!v) return "";
+      if(/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+      const d = new Date(v);
+      if(isNaN(d)) return "";
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const dd = String(d.getDate()).padStart(2,"0");
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    function formatDate(iso){
+      if(!iso) return "";
+      const parts = iso.split("-");
+      if(parts.length === 3){
+        const [y,m,d] = parts;
+        const date = new Date(`${y}-${m}-${d}T00:00:00`);
+        if(isNaN(date)) return iso;
+        return date.toLocaleDateString(undefined, { day:"2-digit", month:"short", year:"numeric" });
+      }
+      const d = new Date(iso);
+      if(isNaN(d)) return iso;
+      return d.toLocaleDateString(undefined, { day:"2-digit", month:"short", year:"numeric" });
+    }
+
+    // Search helpers
+    document.getElementById("searchInput")?.addEventListener("input",(e)=>{ searchQuery = e.target.value; renderTable(); });
+    function clearSearch(){ searchQuery = ""; const si = document.getElementById("searchInput"); if(si) si.value = ""; renderTable(); }
+
+    // Modal close on backdrop click + ESC
+    sectionPwdModal.addEventListener("click",(e)=>{ if(e.target===sectionPwdModal) closeSectionPwdModal(); });
+    editModal.addEventListener("click",(e)=>{ if(e.target===editModal) closeEditModal(); });
+    document.addEventListener("keydown",(e)=>{ if(e.key==="Escape"){ closeSectionPwdModal(); closeEditModal(); } });
+
+    // Note: initPortal() runs after successful login
+  </script>
+</body>
+</html>
