@@ -8,7 +8,15 @@
 <!-- ✅ Paste Firebase code here -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+  import {
+    getFirestore,
+    collection,
+    addDoc,
+    getDocs,
+    deleteDoc,
+    doc,
+    updateDoc
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyA3Uwg3TLPPOIezMsl6fDB4QsO0yc6SmPs",
@@ -22,15 +30,16 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const staffCol = collection(db, "staff");
-    // paste these lines at the end of the module script, before </script>
-window.db = db;
-window.staffCol = staffCol;
-window.getDocs = getDocs;
-window.addDoc = addDoc;
-window.deleteDoc = deleteDoc;
-window.doc = doc;
-window.updateDoc = updateDoc;
 
+  // ✅ Expose Firestore objects to global scope
+  window.db = db;
+  window.staffCol = staffCol;
+  window.getDocs = getDocs;
+  window.addDoc = addDoc;
+  window.deleteDoc = deleteDoc;
+  window.doc = doc;
+  window.updateDoc = updateDoc;
+  
 </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
