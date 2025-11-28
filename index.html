@@ -22,6 +22,15 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
   const staffCol = collection(db, "staff");
+    // paste these lines at the end of the module script, before </script>
+window.db = db;
+window.staffCol = staffCol;
+window.getDocs = getDocs;
+window.addDoc = addDoc;
+window.deleteDoc = deleteDoc;
+window.doc = doc;
+window.updateDoc = updateDoc;
+
 </script>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
